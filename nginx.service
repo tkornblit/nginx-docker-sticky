@@ -1,0 +1,16 @@
+[Unit]
+Description=Nginx
+After=docker.service
+Requires=docker.service
+
+[Service]
+ExecStartPre=/usr/bin/docker pull tkornblit/nginx:latest
+ExecStart=/usr/bin/docker run -p 80:80 -p 443:443 -v /root/nginx/sites-enabled:/etc/nginx/sites-enabled -v /root/nginx/certs:/etc/nginx/certs --name nginx tkornblit/nginx:latest
+ExecStop=/usr/bin/docker kill nginx
+ExecStop=/usr/bin/docker rm nginx
+TimeoutStartSec=0
+Restart=always
+RestartSec=10s
+
+[Install]
+WantedBy=multi-user.target

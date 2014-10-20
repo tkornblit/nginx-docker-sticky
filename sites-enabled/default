@@ -1,0 +1,80 @@
+
+#####################################################################################################################
+# Author: Tom Kornblit                                                                                              #
+#                                                                                                                   #
+# Examples for Variables:                                                                                           #
+#                                                                                                                   #
+# IP_ADDRESS : 192.168.2.1                                                                                          #
+# HOSTNAME : flutter-app.com                                                                                        #
+#                                                                                                                   #
+######################################################################################################################
+
+upstream backend {
+  sticky name=route path=/ expires=1h secure;
+  least_conn;
+  server ${IP_ADDRESS};
+}
+
+server {
+  listen 80;
+  return 301 https://${HOST_NAME}$request_uri;
+}
+map $http_upgrade $connection_upgrade {
+  default upgrade;
+  ''      close;
+}
+
+server {
+  listen 443;
+  server_name ${HOST_NAME};
+  access_log /var/log/nginx/log.access;
+  error_log /var/log/nginx/log.error;
+
+  ssl on;
+  ssl_certificate /etc/nginx/certs/ssl.crt;
+  ssl_certificate_key /etc/nginx/certs/server.key;
+
+  gzip on;
+  gzip_disable "msie6";
+  gzip_vary on;
+  gzip_proxied any;
+  gzip_comp_level 6;
+  gzip_types text/plain text/css application/json application/x-javascript text/xml application/xml application/xml+rss text/javascript;
+
+  ## Start mobile redirection code
+
+  set $mobile_request false;
+  set $mobile_cookie  "";
+
+  if ($http_user_agent ~* '(Mobile|WebOS)') {
+    set $mobile_request true;
+  }
+
+  if ($args ~ 'mobile=false') {
+    set $mobile_request false;
+    set $mobile_cookie  "mobile=false";
+  }
+
+  add_header Set-Cookie $mobile_cookie;
+
+  if ($http_cookie ~ 'mobile=false') {
+    set $mobile_request false;
+  }	
+
+
+  location / {
+      proxy_pass http://backend/;
+      proxy_http_version 1.1;
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection $connection_upgrade;
+      proxy_set_header Host $host;
+
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forward-For $proxy_add_x_forwarded_for;
+      proxy_set_header X-Forward-Proto http;
+      proxy_set_header X-Nginx-Proxy true;
+
+      proxy_redirect off;
+  }
+
+}
