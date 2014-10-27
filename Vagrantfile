@@ -17,10 +17,13 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     #override.vm.box_url = "https://oss-binaries.phusionpassenger.com/vagrant/boxes/latest/ubuntu-12.04-amd64-vmwarefusion.box"
   end
 
-  # Run Nginx
+    # Install Docker
+  pkg_cmd = "wget -q -O - https://get.docker.io/gpg | apt-key add -;" \
+    "echo deb http://get.docker.io/ubuntu docker main > /etc/apt/sources.list.d/docker.list;" \
+    "apt-get update -qq; apt-get install -q -y --force-yes lxc-docker;"
+  # Add vagrant user to the docker group
+  pkg_cmd << "usermod -a -G docker vagrant; "
+  config.vm.provision :shell, :inline => pkg_cmd
 
-  config.vm.provision "docker" do |d|
-    d.run "tkornblit/nginx",
-      args: "docker run -d -p 80:80 -p 443:443 -v /vagrant/sites-enabled:/etc/nginx/sites-enabled -v /vagrant/certs:/etc/nginx/certs -v /vagrant/logs:/var/log/nginx"
-  end
+  
 end
